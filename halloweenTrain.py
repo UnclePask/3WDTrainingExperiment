@@ -158,12 +158,12 @@ class halloweenTrain(object):
         # Estragg la parte decimale
         
         print(f"\n Test adattivo \nArea_h: {area_H:.9f}\nArea_m: {area_M:.9f}")
-        #tau, _, _ = halloweenTrain.compute_tau(x_train_ds["margine"], x_train_ds["entropy"], area_M, area_H, 1e-8)
+        tau, _, _ = halloweenTrain.compute_tau(x_train_ds["margine"], x_train_ds["entropy"], area_M, area_H, 1e-8)
         
         
-        #test_adattivo = (tau > 1) or (ratio_H > 2) or (ratio_M > 2) #<- scatta più facilmente
+        test_adattivo = (tau > 1) and np.abs(D) > 0.08 #<- scatta più facilmente
         #test_adattivo = (tau > 1) or (np.abs(D) > 0.5) #<- Tau sembrava così figo ma non va bene per questa applicazione
-        test_adattivo = np.abs(D) > 0.14 #<-condizione che verifica la divergenza delle aree in  [-1, 1]
+        #test_adattivo =  #<-condizione che verifica la divergenza delle aree in  [-1, 1]
         print(f"\nD = {D:.4f}\n")
         #test_adattivo = tau > 1 #<- meno preciso ma il mio preferito verifica solo lo stato del sistema
         #
