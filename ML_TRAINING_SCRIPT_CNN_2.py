@@ -123,18 +123,19 @@ def training_experiment(model, dataset: str):
     i = 0
     #loss3wd = acc3wd = rec3wd = pre3wd = 0
     rec3wd = 0
+    best_loss = float("inf")
     while i < total_epochs:   
         print(f"\n-------\n3WD epoch {i+1} epoch fase di fit training set (T) ...")
         #history = 
-        model.fit(
+        history = model.fit(
             X_train, 
             y_train,
             epochs = 1,           
             batch_size = 64,
-            validation_data = (X_test, y_test),
-            class_weight = dict_cw,
-            callbacks = callbacks_var)
-        
+            validation_data = (X_test, y_test) )
+            #class_weight = dict_cw,
+            #callbacks = callbacks_var) <- non serve nel loop
+                
         X_val, _, y_val, _ = train_test_split(
             X_reshaped, 
             y_cat, 
@@ -150,8 +151,9 @@ def training_experiment(model, dataset: str):
         entropie = hTrain.halloweenTrain.entropie(probs)
         margini = hTrain.halloweenTrain.margini(probs)
         
-        x_train_ds = pd.DataFrame(X_val.reshape(X_train.shape[0], -1))
+        x_train_ds = pd.DataFrame(X_val.reshape(X_val.shape[0], -1))
         
+        x_train_ds["idx"] = np.arange(len(x_train_ds))
         x_train_ds["prob_ben"] = probs[:,0]
         x_train_ds["prob_mal"] = probs[:,1]
         x_train_ds["entropy"] = entropie
@@ -172,13 +174,16 @@ def training_experiment(model, dataset: str):
             #indice sparsi
             #y_2sd = pd.Series(y_train_2sd, index=X_train.index)
             #y_2sd_filtered = y_2sd.loc[X_train_2sd.index]
-            y_train_2sd = y_val[np.isin(np.arange(y_val.shape[0]), X_train_2sd.index)]
+            #y_train_2sd = y_val[np.isin(np.arange(y_val.shape[0]), X_train_2sd.index)] <- forse questi indici sono sbagliati
+            sel_idx = X_train_2sd["idx"].values
+            y_train_2sd = y_val[sel_idx]
             #y_cat_2sd = to_categorical(y_train_2sd, num_classes=2)
                
             
             X_train_2sd = X_train_2sd.drop(columns=["prob_ben", "prob_mal", "entropy", "margine"])
             X_train_2sd = X_train_2sd.select_dtypes(include=["float64", "int64"])
-            X_train_2sd_scaled = scaler.fit_transform(X_train_2sd) #<- attenzione POTREBBE CAMBIARE scala dei dati
+            #X_train_2sd_scaled = scaler.fit_transform(X_train_2sd) #<- attenzione POTREBBE CAMBIARE scala dei dati
+            X_train_2sd_scaled = scaler.transform(X_train_2sd)
             #X_train_2sd_scaled = scaler.transform(X_train_2sd, feature_names_out=None)
             X_reshaped_2nd = X_train_2sd_scaled.reshape((X_train_2sd_scaled.shape[0], X_train_2sd_scaled.shape[1], 1))
             #X_train3wd, y_train3wd = sm.balance_classes_undersample(X_reshaped_2nd, y_train_2sd)
@@ -202,27 +207,26 @@ def training_experiment(model, dataset: str):
             #    random_state=42 )
             num_inc = len(X_reshaped_2nd)
             print(f"\nEpoch {i+1} fit per dati incerti sul validation set (V)\nNumero record BND: {num_inc}\n")
-            #history = 
             model.fit(
                 X_reshaped_2nd, 
                 y_train_2sd,
                 epochs = 1,           
                 batch_size = 64,
                 validation_data = (X_test, y_test),
-                class_weight = dict_cw#,
+                #class_weight = dict_cw#,
                 #callbacks = callbacks_var
             )
         
         print(f"\n3WD epoch {i+1} fase di evaluate con il test set (S) ...")  
-        loss, acc, _, rec = model.evaluate(
+        act_loss, acc, _, rec = model.evaluate(
             X_test, 
             y_test, 
             batch_size=64)
-        
-        if rec > rec3wd:
+                
+        if best_loss > act_loss:
+            best_loss = act_loss
             print(f"\nSalvo modello con accuracy {acc} loss {loss} e recall {rec}")
-            model.save("unclepaskm_cnn_multi_10test2_acc.keras")
-            rec3wd = rec
+            model.save("unclepaskm_cnn_multi_10test2_loss.keras")
                     
         i = i + 1
     
